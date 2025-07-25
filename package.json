@@ -1,0 +1,49 @@
+{
+  "name": "vscode-scroll-padding",
+  "displayName": "VS Code Scroll Padding",
+  "description": "Keep cursor with padding lines from visible window edges while scrolling",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Scroll Padding",
+      "properties": {
+        "scrollPadding.lines": {
+          "type": "number",
+          "default": 3,
+          "minimum": 0,
+          "maximum": 20,
+          "description": "Number of lines to keep as padding between cursor and window edges"
+        },
+        "scrollPadding.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable scroll padding feature"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "scrollPadding.toggle",
+        "title": "Toggle Scroll Padding"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "16.x",
+    "typescript": "^4.9.4"
+  }
+}
