@@ -2,7 +2,7 @@
   "name": "vscode-scroll-padding",
   "displayName": "VS Code Scroll Padding",
   "description": "Keep cursor with padding lines from visible window edges while scrolling",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -33,6 +33,14 @@
       {
         "command": "scrollPadding.toggle",
         "title": "Toggle Scroll Padding"
+      },
+      {
+        "command": "extension.focusPrimarySideWithSync",
+        "title": "Focus Primary Side with Cursor Sync"
+      },
+      {
+        "command": "extension.focusSecondarySideWithSync",
+        "title": "Focus Secondary Side with Cursor Sync"
       }
     ]
   },

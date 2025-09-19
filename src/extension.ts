@@ -14,9 +14,19 @@ class ScrollPaddingManager {
         this.loadConfiguration();
     }
 
-    public activate(context: vscode.ExtensionContext) {
-        console.log('Scroll Padding extension activated');
+    private findBestMatchingLine(editor: vscode.TextEditor, originalLine: number): number {
+        const totalLines = editor.document.lineCount;
+        
+        // 如果原行数在范围内，直接使用
+        if (originalLine < totalLines) {
+            return originalLine;
+        }
+        
+        // 否则使用最后一行
+        return Math.max(0, totalLines - 1);
+    }
 
+    public activate(context: vscode.ExtensionContext) {
         // 注册命令
         const toggleCommand = vscode.commands.registerCommand('scrollPadding.toggle', () => {
             this.toggle();
@@ -34,9 +44,65 @@ class ScrollPaddingManager {
         // 启动核心功能
         this.setupListeners();
         context.subscriptions.push(...this.disposables);
-    }
 
-    private loadConfiguration() {
+        /// -----------------
+
+        
+        // Primary Side 命令
+        let disposablePrimary = vscode.commands.registerCommand('extension.focusPrimarySideWithSync', () => {
+            this.focusSideWithSync('workbench.action.compareEditor.focusPrimarySide');
+        });
+
+        // Secondary Side 命令
+        let disposableSecondary = vscode.commands.registerCommand('extension.focusSecondarySideWithSync', () => {
+            this.focusSideWithSync('workbench.action.compareEditor.focusSecondarySide');
+        });
+
+        context.subscriptions.push(disposablePrimary, disposableSecondary);
+    }
+    
+    // 通用的焦点切换函数
+    // 
+    private focusSideWithSync(command: string) {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) return ;
+    
+        const currentLine = editor.selection.active.line;
+        const currentColumn = editor.selection.active.character;
+    
+        // 执行相应的原始命令并使用 then
+        Promise.resolve(vscode.commands.executeCommand(command))
+            .then(() => {
+                // 返回延迟 Promise
+                return new Promise<void>((resolve) => {
+                    setTimeout(() => {
+                        const newEditor = vscode.window.activeTextEditor;
+                        if (!newEditor) {
+                            resolve();
+                            return;
+                        }
+    
+                        try {
+                            // 智能行匹配逻辑
+                            const targetLine = this.findBestMatchingLine(newEditor, currentLine);
+                            const position = new vscode.Position(targetLine, Math.min(currentColumn, newEditor.document.lineAt(targetLine).text.length));
+    
+                            newEditor.selection = new vscode.Selection(position, position);
+                            newEditor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+                        } catch (error) {
+                            console.error('Error syncing cursor position:', error);
+                        }
+                        
+                        resolve();
+                    }, 50);
+                });
+            })
+            .catch((error: unknown) => {
+                console.error('Error executing command:', error);
+            });
+    } 
+
+    loadConfiguration() {
         const config = vscode.workspace.getConfiguration('scrollPadding');
         this.isEnabled = config.get<boolean>('enabled', true);
         this.paddingLines = config.get<number>('lines', 5);
@@ -44,6 +110,10 @@ class ScrollPaddingManager {
     }
 
     private toggle() {
+        vscode.window.showInformationMessage(
+            'Scroll Padding toggle'
+        );
+
         this.isEnabled = !this.isEnabled;
         vscode.window.showInformationMessage(
             `Scroll Padding ${this.isEnabled ? 'enabled' : 'disabled'}`
