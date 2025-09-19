@@ -5,7 +5,9 @@ class ScrollPaddingManager {
     private isEnabled: boolean = true;
     private paddingLines: number = 5;
     private delay: number = 50;
+    private throttleTimer: NodeJS.Timeout | undefined;
     private debounceTimer: NodeJS.Timeout | undefined;
+    private throttleInterval: number = 100;
     private isAdjustingCursor: boolean = false;
     private lastVisibleStart: number = -1;
     private lastVisibleEnd: number = -1;
@@ -167,11 +169,35 @@ class ScrollPaddingManager {
             return;
         }
 
-        // 清除之前的防抖定时器
-        // 使用防抖来避免频繁触发
-        this.debounceTimer = setTimeout(() => {
+        // Throttle: 如果没有throttle定时器在运行，立即执行并启动throttle
+        if (!this.throttleTimer) {
             this.processScrollEvent(editor);
-        }, this.delay);
+
+            // 启动throttle定时器，在间隔时间内阻止立即执行
+            this.throttleTimer = setTimeout(() => {
+                this.throttleTimer = undefined;
+            }, this.throttleInterval);
+
+            // 清除debounce定时器，因为我们已经执行了
+            if (this.debounceTimer) {
+                clearTimeout(this.debounceTimer);
+                this.debounceTimer = undefined;
+            }
+            return;
+        }
+
+        // Debounce: 如果throttle正在运行，使用防抖
+        if (this.debounceTimer) {
+            clearTimeout(this.debounceTimer);
+        }
+
+        this.debounceTimer = setTimeout(() => {
+            // 如果throttle已经结束，执行处理
+            if (!this.throttleTimer) {
+                this.processScrollEvent(editor);
+            }
+            this.debounceTimer = undefined;
+        }, this.delay);;
     }
 
     private processScrollEvent(editor: vscode.TextEditor) {
@@ -268,7 +294,12 @@ class ScrollPaddingManager {
         this.lastVisibleStart = -1;
         this.lastVisibleEnd = -1;
         this.isAdjustingCursor = false;
-        
+
+        if (this.throttleTimer) {
+            clearTimeout(this.throttleTimer);
+            this.throttleTimer = undefined;
+        }
+
         if (this.debounceTimer) {
             clearTimeout(this.debounceTimer);
             this.debounceTimer = undefined;
